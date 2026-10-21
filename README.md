@@ -148,5 +148,3 @@ This project is licensed under the [MIT License](LICENSE).
 **WafyURL** is a product of **Wafyro Software**.
 
 **Founder and Software Developer:** Afee Muhammod Wafy  
-**GitHub:** https://github.com/afeemuhammodwafy1  
-**Live website:** https://url.amwafy.xyz
