@@ -22,16 +22,33 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-producti
 # ============================================
 # DATABASE CONFIGURATION
 # ============================================
-database_url = os.environ.get('DATABASE_URL', 'sqlite:///wafyurl.db')
+# Vercel functions are ephemeral: SQLite is suitable for local development only.
+# Require a persistent PostgreSQL database in Vercel so links don't disappear
+# between serverless invocations.
+database_url = (os.environ.get('DATABASE_URL') or '').strip()
+if not database_url:
+    if os.environ.get('VERCEL'):
+        raise RuntimeError(
+            'DATABASE_URL is required in Vercel Project Settings > Environment Variables. '
+            'Set it to the Neon PostgreSQL connection string and redeploy.'
+        )
+    database_url = 'sqlite:///wafyurl.db'
+
+# Normalize PostgreSQL URLs used by Neon and other hosting providers.
 if database_url.startswith('postgres://'):
-    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    database_url = 'postgresql://' + database_url[len('postgres://'):]
+if database_url.startswith('postgresql://'):
+    database_url = 'postgresql+psycopg2://' + database_url[len('postgresql://'):]
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Keep each serverless instance's connection footprint small.
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': 10,
+    'pool_size': 1,
+    'max_overflow': 0,
     'pool_recycle': 300,
     'pool_pre_ping': True,
+    'pool_timeout': 10,
 }
 
 db = SQLAlchemy(app)
